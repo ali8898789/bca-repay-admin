@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCA 渠道还款补单 - Admin</title>
+<style>
+  :root {
+    --primary: #1a73e8;
+    --primary-dark: #1557b0;
+    --danger: #d93025;
+    --danger-bg: #fce8e6;
+    --success: #188038;
+    --success-bg: #e6f4ea;
+    --warning: #e37400;
+    --warning-bg: #fef7e0;
+    --bg: #f8f9fa;
+    --card: #fff;
+    --border: #dadce0;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --text-muted: #80868b;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ===== Login Overlay ===== */
+  .login-overlay {
+
+  /* ===== Password Gate ===== */
+  .pass-gate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pass-gate-card {
+    background: var(--card); border-radius: 12px; padding: 40px 36px;
+    width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .pass-gate-card h1 { font-size: 22px; margin-bottom: 6px; text-align: center; }
+  .pass-gate-card .subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; text-align: center; }
+
+  /* ===== Login Overlay ===== */
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-card {
+    background: var(--card); border-radius: 12px; padding: 40px 36px;
+    width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .login-card h1 { font-size: 22px; margin-bottom: 6px; }
+  .login-card .subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 28px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.12);
+  }
+  .role-hint {
+    font-size: 12px; color: var(--text-muted); margin-top: 4px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; border: none; border-radius: var(--radius);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #c62828; }
+  .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-outline:hover { background: #e8f0fe; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-block { width: 100%; }
+  .login-error {
+    color: var(--danger); font-size: 13px; margin-top: 12px; display: none;
+    background: var(--danger-bg); padding: 8px 12px; border-radius: 6px;
+  }
+  .login-error.show { display: block; }
+
+  /* ===== Main Layout ===== */
+  .app { display: none; }
+  .app.active { display: flex; }
+  .sidebar {
+    width: 220px; min-height: 100vh; background: #1e1e2d;
+    color: #a2a3b7; padding: 20px 0; flex-shrink: 0;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px; font-size: 17px; font-weight: 700; color: #fff;
+    border-bottom: 1px solid #2a2a3d; margin-bottom: 12px;
+  }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 10px; padding: 11px 20px;
+    color: #a2a3b7; text-decoration: none; font-size: 14px; transition: all 0.15s;
+  }
+  .sidebar-nav a:hover, .sidebar-nav a.active {
+    background: #2a2a3d; color: #fff;
+  }
+  .sidebar-user {
+    margin-top: auto; padding: 16px 20px; border-top: 1px solid #2a2a3d;
+    font-size: 13px;
+  }
+  .sidebar-user .name { color: #fff; font-weight: 600; }
+  .sidebar-user .role { font-size: 11px; color: #6d6d85; margin-top: 2px; }
+  .sidebar-user .logout { color: #a2a3b7; cursor: pointer; font-size: 12px; margin-top: 6px; display: inline-block; }
+  .sidebar-user .logout:hover { color: #fff; }
+
+  .main {
+    flex: 1; padding: 28px 32px; overflow-y: auto; max-height: 100vh;
+  }
+  .page-header { margin-bottom: 24px; }
+  .page-header h2 { font-size: 22px; margin-bottom: 4px; }
+  .page-header p { color: var(--text-secondary); font-size: 13px; }
+
+  /* ===== Config Bar ===== */
+  .config-bar {
+    background: var(--warning-bg); border: 1px solid #fdd663; border-radius: var(--radius);
+    padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;
+    font-size: 13px; color: #5a4a00;
+  }
+  .config-bar .label { font-weight: 600; white-space: nowrap; }
+  .config-bar select { font-size: 13px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; }
+  .config-bar .config-status { font-size: 12px; margin-left: auto; }
+  .config-bar .config-status.ok { color: var(--success); }
+  .config-bar .config-status.err { color: var(--danger); }
+
+  /* ===== Cards ===== */
+  .card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 24px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 16px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+  .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .form-row .form-group { flex: 1; min-width: 200px; }
+
+  /* ===== Table ===== */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f1f3f4; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: #f8f9fa; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-warning { background: var(--warning-bg); color: var(--warning); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+
+  /* ===== Modal ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--card); border-radius: 12px; padding: 28px; width: 520px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  .modal h3 { margin-bottom: 20px; font-size: 18px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; top: 20px; right: 20px; z-index: 99999;
+    padding: 14px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 500;
+    color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transform: translateX(120%); transition: transform 0.3s ease;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast-success { background: var(--success); }
+  .toast-error { background: var(--danger); }
+  .toast-warning { background: var(--warning); }
+
+  /* ===== No Permission ===== */
+  .no-permission {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 400px; text-align: center;
+  }
+  .no-permission .icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+  .no-permission h3 { font-size: 20px; margin-bottom: 8px; color: var(--danger); }
+  .no-permission p { color: var(--text-secondary); font-size: 14px; }
+
+  .empty-row td { text-align: center; color: var(--text-muted); padding: 32px; }
+
+  /* spinner */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid #ccc; border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .text-muted { color: var(--text-muted); font-size: 12px; }
+
+  /* demo account switcher */
+  .demo-switcher {
+    position: fixed; top: 10px; left: 10px; z-index: 10000;
+    background: rgba(0,0,0,0.8); color: #fff; padding: 8px 12px; border-radius: 6px;
+    font-size: 11px; display: none;
+  }
+  .demo-switcher button {
+    background: var(--primary); color: #fff; border: none; padding: 3px 8px;
+    border-radius: 3px; cursor: pointer; margin: 2px; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== PASSWORD GATE ====== -->
+<div class="pass-gate-overlay" id="passGateOverlay">
+  <div class="pass-gate-card">
+    <h1>🔐 访问受限</h1>
+    <p class="subtitle">此页面需要密码才能访问</p>
+    <div class="form-group">
+      <label>请输入访问密码</label>
+      <input type="password" id="gatePass" placeholder="输入密码" autofocus>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="checkGatePass()">验 证</button>
+    <div class="login-error" id="gateError"></div>
+  </div>
+</div>
+
+<!-- ====== LOGIN ====== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card" id="loginCard">
+    <h1>🏦 BCA 还款补单系统</h1>
+    <p class="subtitle">仅管理员可操作补单 · 请登录</p>
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="loginUser" placeholder="输入用户名" value="admin">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="loginPass" placeholder="输入密码" value="admin123">
+    </div>
+    <div class="form-group">
+      <label>角色</label>
+      <select id="loginRole">
+        <option value="admin">Admin（管理员）</option>
+        <option value="operator">Operator（运营）</option>
+        <option value="viewer">Viewer（只读）</option>
+      </select>
+      <p class="role-hint">⚠️ 仅 Admin 角色有补单权限</p>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="loginError"></div>
+    <p style="margin-top:16px;font-size:12px;color:var(--text-muted);text-align:center;">
+      演示账号 — 点击角色下拉切换体验不同权限
+    </p>
+  </div>
+</div>
+
+<!-- ====== APP LAYOUT ====== -->
+<div class="app" id="appContainer">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏦 PinjamAngo Admin</div>
+    <nav class="sidebar-nav" style="flex:1;">
+      <a href="#" class="active">📋 还款补单</a>
+      <a href="#">📊 还款记录</a>
+      <a href="#">🏷️ 订单管理</a>
+      <a href="#">📁 流水对账</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="name" id="sidebarName"></div>
+      <div class="role" id="sidebarRole"></div>
+      <span class="logout" onclick="doLogout()">退出登录 →</span>
+    </div>
+  </aside>
+  <main class="main" id="mainContent">
+    <!-- page header -->
+    <div class="page-header">
+      <h2>📋 BCA 渠道还款补单</h2>
+      <p>当银行流水有还款成功记录但系统未收到回调通知时，在此手动补单</p>
+    </div>
+
+    <!-- config bar -->
+    <div class="config-bar" id="configBar">
+      <span class="label">🔌 渠道配置:</span>
+      <select id="channelSelect" style="min-width:180px;">
+        <option value="BCA">BCA (Bank Central Asia)</option>
+        <option value="BCA_VA">BCA Virtual Account</option>
+        <option value="BCA_TRF">BCA Transfer</option>
+      </select>
+      <span class="config-status ok" id="configStatus">✓ 已连接</span>
+    </div>
+
+    <!-- Main content: depends on role -->
+    <div id="roleContent"></div>
+  </main>
+</div>
+
+<!-- ====== CONFIRM MODAL ====== -->
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal">
+    <h3>⚠️ 确认补单操作</h3>
+    <div id="confirmBody" style="font-size:14px;line-height:1.8;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-danger" id="confirmBtn" onclick="execute补单()">确认补单</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== DETAIL MODAL ====== -->
+<div class="modal-overlay hidden" id="detailModal">
+  <div class="modal">
+    <h3>📄 补单详情</h3>
+    <div id="detailBody" style="font-size:14px;line-height:1.9;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TOAST ====== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Password Gate ───
+const GATE_PASS_HASH = '4870f9cabcbb7f2fe99b3f7a0b906097f407deb6bab5fc2972d654896cf217c5';
+
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkGatePass() {
+  const input = document.getElementById('gatePass').value;
+  const errEl = document.getElementById('gateError');
+  if (!input) {
+    errEl.textContent = '请输入密码';
+    errEl.classList.add('show');
+    return;
+  }
+  const hash = await sha256(input);
+  if (hash === GATE_PASS_HASH) {
+    document.getElementById('passGateOverlay').style.display = 'none';
+  } else {
+    errEl.textContent = '密码错误，请重试';
+    errEl.classList.add('show');
+    document.getElementById('gatePass').value = '';
+    document.getElementById('gatePass').focus();
+  }
+}
+
+// Enter key to submit
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('gatePass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkGatePass();
+  });
+});
+
+// ─── State ───
+let currentUser = null;
+let pendingFormData = null;
+let history = JSON.parse(localStorage.getItem('bca_补单_history') || '[]');
+let idCounter = history.length > 0 ? Math.max(...history.map(h => h.id)) + 1 : 1;
+
+// ─── Demo orders DB ───
+const demoOrders = [
+  { orderId: 'LOAN-2026-00421', userId: 'USR-1088', userName: 'Ahmad Fauzi', product: 'PRIBADI-30D', loanAmt: '2,000,000', dueAmt: '2,600,000', dueDate: '2026-07-25' },
+  { orderId: 'LOAN-2026-00422', userId: 'USR-2105', userName: 'Siti Nurhaliza', product: 'PRIBADI-15D', loanAmt: '1,500,000', dueAmt: '1,950,000', dueDate: '2026-07-22' },
+  { orderId: 'LOAN-2026-00423', userId: 'USR-3312', userName: 'Budi Santoso', product: 'PRIBADI-30D', loanAmt: '3,000,000', dueAmt: '3,900,000', dueDate: '2026-07-28' },
+  { orderId: 'LOAN-2026-00424', userId: 'USR-0891', userName: 'Dewi Lestari', product: 'PRIBADI-8D', loanAmt: '800,000', dueAmt: '1,040,000', dueDate: '2026-07-18' },
+  { orderId: 'LOAN-2026-00425', userId: 'USR-4521', userName: 'Rudi Hartono', product: 'PRIBADI-15D', loanAmt: '2,500,000', dueAmt: '3,250,000', dueDate: '2026-07-30' },
+];
+
+// ─── Toast ───
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast toast-' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── Modal ───
+function closeModal() {
+  document.getElementById('confirmModal').classList.add('hidden');
+  document.getElementById('detailModal').classList.add('hidden');
+  pendingFormData = null;
+}
+
+// ─── Login ───
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const role = document.getElementById('loginRole').value;
+  const errEl = document.getElementById('loginError');
+
+  if (!user || !pass) {
+    errEl.textContent = '请输入用户名和密码';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // demo auth: any password works
+  currentUser = { name: user, role: role };
+  errEl.classList.remove('show');
+
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContainer').classList.add('active');
+  document.getElementById('sidebarName').textContent = user;
+  document.getElementById('sidebarRole').textContent = role === 'admin' ? '管理员' : role === 'operator' ? '运营人员' : '只读用户';
+  document.getElementById('sidebarRole').style.color = role === 'admin' ? '#4caf50' : role === 'operator' ? '#ff9800' : '#9e9e9e';
+
+  renderRoleContent();
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('loginOverlay').style.display = '';
+  document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('loginPass').value = '';
+}
+
+// ─── Render based on role ───
+function renderRoleContent() {
+  const container = document.getElementById('roleContent');
+  if (!currentUser) return;
+
+  if (currentUser.role === 'admin') {
+    container.innerHTML = renderAdminView();
+  } else {
+    container.innerHTML = renderNoPermissionView();
+  }
+  // Always show history table below
+  container.innerHTML += renderHistoryTable();
+}
+
+function renderNoPermissionView() {
+  return `
+    <div class="no-permission">
+      <div class="icon">🚫</div>
+      <h3>无操作权限</h3>
+      <p>您当前角色为 <strong>${currentUser.role === 'operator' ? 'Operator（运营）' : 'Viewer（只读）'}</strong></p>
+      <p style="margin-top:6px;">BCA 还款补单功能仅限 <strong>Admin（管理员）</strong> 角色操作</p>
+      <p class="text-muted" style="margin-top:16px;">如有需要，请联系管理员: admin@pinjamango.co.id</p>
+    </div>
+  `;
+}
+
+function renderAdminView() {
+  return `
+    <div class="card">
+      <h3>🔧 补单操作</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+        请根据银行流水中的还款记录填写以下信息。请务必核对准确后再提交。
+      </p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>还款码 (Kode Bayar) <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="kodeBayar" placeholder="如: BCA-20260720-001234" style="font-family:monospace;">
+          <button class="btn btn-outline" style="margin-top:6px;font-size:12px;padding:5px 12px;" onclick="lookupOrder()">
+            🔍 查询关联订单
+          </button>
+          <div id="lookupResult" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+        <div class="form-group">
+          <label>关联订单号 (Order ID) <span style="color:var(--danger)">*</span></label>
+          <select id="orderSelect">
+            <option value="">-- 请先查询或手动选择 --</option>
+          </select>
+          <p class="text-muted" style="margin-top:4px;">支持手动选择已有订单</p>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top:8px;">
+        <div class="form-group">
+          <label>还款金额 (IDR) <span style="color:var(--danger)">*</span></label>
+          <input type="number" id="repayAmount" placeholder="如: 2600000" min="1" step="1">
+          <p class="text-muted" style="margin-top:4px;">单位: 印尼盾 (IDR)，请输入银行流水中实际到账金额</p>
+        </div>
+        <div class="form-group">
+          <label>还款时间 <span style="color:var(--danger)">*</span></label>
+          <input type="datetime-local" id="repayTime">
+          <p class="text-muted" style="margin-top:4px;">银行流水中的交易时间 (WIB)</p>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top:8px;">
+        <div class="form-group" style="flex:2;">
+          <label>备注 (Opsional)</label>
+          <input type="text" id="remark" placeholder="如: 银行流水已确认，BCA VA payment received">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>银行流水截图 (Opsional)</label>
+          <input type="file" id="bankSlip" accept="image/*" style="font-size:13px;">
+        </div>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-primary" onclick="submit补单()">📝 提交补单</button>
+        <button class="btn btn-outline" onclick="resetForm()">🔄 重置表单</button>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:12px;">
+          提交后将立即更新该笔订单的还款状态为"已还款"
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+// ─── Lookup order ───
+function lookupOrder() {
+  const kode = document.getElementById('kodeBayar').value.trim();
+  const resultEl = document.getElementById('lookupResult');
+
+  if (!kode) {
+    resultEl.innerHTML = '<span style="color:var(--danger);">⚠️ 请输入还款码</span>';
+    return;
+  }
+
+  // Simulate API lookup: random demo order
+  const order = demoOrders[Math.floor(Math.random() * demoOrders.length)];
+
+  const select = document.getElementById('orderSelect');
+  select.innerHTML = '';
+  demoOrders.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.orderId;
+    opt.textContent = `${o.orderId} — ${o.userName} | 应还 IDR ${o.dueAmt}`;
+    opt.dataset.dueAmt = o.dueAmt.replace(/,/g, '');
+    opt.dataset.userName = o.userName;
+    opt.dataset.dueDate = o.dueDate;
+    if (o.orderId === order.orderId) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  resultEl.innerHTML = `
+    <div style="background:#f1f8e9;padding:8px 12px;border-radius:6px;border:1px solid #c8e6c9;">
+      ✓ 找到匹配订单: <strong>${order.orderId}</strong> — ${order.userName}<br>
+      <span style="font-size:11px;">应还金额: IDR ${order.dueAmt} | 到期日: ${order.dueDate}</span>
+    </div>
+  `;
+
+  // auto-fill amount
+  document.getElementById('repayAmount').value = order.dueAmt.replace(/,/g, '');
+}
+
+// ─── Submit ───
+function submit补单() {
+  const kodeBayar = document.getElementById('kodeBayar')?.value.trim();
+  const orderId = document.getElementById('orderSelect')?.value;
+  const amount = document.getElementById('repayAmount')?.value;
+  const repayTime = document.getElementById('repayTime')?.value;
+  const remark = document.getElementById('remark')?.value.trim();
+  const bankSlip = document.getElementById('bankSlip')?.files[0];
+
+  // Validation
+  const errors = [];
+  if (!kodeBayar) errors.push('还款码');
+  if (!orderId) errors.push('关联订单');
+  if (!amount || parseInt(amount) <= 0) errors.push('还款金额');
+  if (!repayTime) errors.push('还款时间');
+
+  if (errors.length > 0) {
+    showToast('请填写: ' + errors.join('、'), 'error');
+    return;
+  }
+
+  const selectedOpt = document.getElementById('orderSelect').selectedOptions[0];
+  const userName = selectedOpt?.dataset?.userName || '';
+
+  // Show confirm modal
+  pendingFormData = { kodeBayar, orderId, amount: parseInt(amount), repayTime, remark, bankSlip, userName };
+  document.getElementById('confirmBody').innerHTML = `
+    <table style="width:100%;font-size:13px;">
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">还款码</td><td style="font-weight:600;font-family:monospace;">${kodeBayar}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">订单号</td><td style="font-weight:600;">${orderId}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">用户</td><td>${userName}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">金额</td><td style="font-weight:600;color:var(--success);">IDR ${parseInt(amount).toLocaleString('id-ID')}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">还款时间</td><td>${new Date(repayTime).toLocaleString('zh-CN', {timeZone:'Asia/Jakarta'})} WIB</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">备注</td><td>${remark || '—'}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">附件</td><td>${bankSlip ? bankSlip.name : '—'}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:4px 0;">操作人</td><td>${currentUser.name} (${currentUser.role})</td></tr>
+    </table>
+    <p style="margin-top:12px;font-size:12px;color:var(--danger);">⚠️ 请仔细核对以上信息，补单后订单状态将变更为"已还款"</p>
+  `;
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function execute补单() {
+  if (!pendingFormData) return;
+
+  const d = pendingFormData;
+  const now = new Date();
+  const record = {
+    id: idCounter++,
+    kodeBayar: d.kodeBayar,
+    orderId: d.orderId,
+    userName: d.userName,
+    amount: d.amount,
+    repayTime: d.repayTime,
+    remark: d.remark || '',
+    bankSlip: d.bankSlip ? d.bankSlip.name : '',
+    operator: currentUser.name,
+    createdAt: now.toISOString(),
+  };
+
+  history.unshift(record);
+  localStorage.setItem('bca_补单_history', JSON.stringify(history));
+
+  closeModal();
+  resetForm();
+  renderRoleContent();
+  showToast('✅ 补单成功！订单 ' + d.orderId + ' 已标记为已还款', 'success');
+}
+
+// ─── Reset form ───
+function resetForm() {
+  const kode = document.getElementById('kodeBayar');
+  const order = document.getElementById('orderSelect');
+  const amount = document.getElementById('repayAmount');
+  const time = document.getElementById('repayTime');
+  const remark = document.getElementById('remark');
+  const slip = document.getElementById('bankSlip');
+  const result = document.getElementById('lookupResult');
+
+  if (kode) kode.value = '';
+  if (order) order.innerHTML = '<option value="">-- 请先查询或手动选择 --</option>';
+  if (amount) amount.value = '';
+  if (time) time.value = '';
+  if (remark) remark.value = '';
+  if (slip) slip.value = '';
+  if (result) result.innerHTML = '';
+}
+
+// ─── History table ───
+function renderHistoryTable() {
+  const rows = history.length === 0
+    ? `<tr class="empty-row"><td colspan="8">暂无补单记录</td></tr>`
+    : history.map(h => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px;">#${h.id}</td>
+        <td style="font-family:monospace;font-size:12px;">${h.kodeBayar}</td>
+        <td>${h.orderId}</td>
+        <td>${h.userName || '—'}</td>
+        <td style="font-weight:600;color:var(--success);">IDR ${h.amount.toLocaleString('id-ID')}</td>
+        <td>${new Date(h.repayTime).toLocaleString('zh-CN', {timeZone:'Asia/Jakarta'})}</td>
+        <td>${h.operator}</td>
+        <td style="font-size:12px;">${new Date(h.createdAt).toLocaleString('zh-CN')}</td>
+        <td>
+          <span class="badge badge-success">已补单</span>
+          <button class="btn btn-outline" style="font-size:11px;padding:2px 8px;margin-left:6px;" onclick="showDetail(${h.id})">详情</button>
+        </td>
+      </tr>
+    `).join('');
+
+  return `
+    <div class="card" style="margin-top:16px;">
+      <h3>📋 补单记录</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>还款码</th>
+              <th>订单号</th>
+              <th>用户</th>
+              <th>金额</th>
+              <th>还款时间</th>
+              <th>操作人</th>
+              <th>创建时间</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function showDetail(id) {
+  const h = history.find(r => r.id === id);
+  if (!h) return;
+
+  document.getElementById('detailBody').innerHTML = `
+    <table style="width:100%;font-size:13px;">
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">ID</td><td style="font-weight:600;">#${h.id}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">还款码</td><td style="font-family:monospace;">${h.kodeBayar}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">订单号</td><td style="font-weight:600;">${h.orderId}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">用户</td><td>${h.userName || '—'}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">金额</td><td style="font-weight:600;color:var(--success);">IDR ${h.amount.toLocaleString('id-ID')}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">还款时间</td><td>${new Date(h.repayTime).toLocaleString('zh-CN', {timeZone:'Asia/Jakarta'})} WIB</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">备注</td><td>${h.remark || '—'}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">附件</td><td>${h.bankSlip || '—'}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">操作人</td><td>${h.operator}</td></tr>
+      <tr><td style="color:var(--text-secondary);padding:6px 0;">创建时间</td><td>${new Date(h.createdAt).toLocaleString('zh-CN')}</td></tr>
+    </table>
+  `;
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+// ─── Init ───
+(function() {
+  // fill demo orders in select if admin view already rendered
+  const select = document.getElementById('orderSelect');
+  if (select) {
+    demoOrders.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.orderId;
+      opt.textContent = `${o.orderId} — ${o.userName} | 应还 IDR ${o.dueAmt}`;
+      opt.dataset.dueAmt = o.dueAmt.replace(/,/g, '');
+      opt.dataset.userName = o.userName;
+      opt.dataset.dueDate = o.dueDate;
+      select.appendChild(opt);
+    });
+  }
+
+  // Close modals on overlay click
+  document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.getElementById('detailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ESC to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Set default datetime to tomorrow morning (WIB)
+  const now = new Date();
+  now.setDate(now.getDate() + 1);
+  now.setHours(9, 0, 0, 0);
+  document.getElementById('repayTime').value = now.toISOString().slice(0, 16);
+})();
+</script>
+
+</body>
+</html>
